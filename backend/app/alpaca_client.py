@@ -2,6 +2,7 @@
 # This file will contain the Alpaca API client implementation for fetching account data, positions, and trade history 
 
 from alpaca.trading.client import TradingClient
+from alpaca.data import StockHistoricalDataClient
 from alpaca.trading.requests import MarketOrderRequest, TakeProfitRequest, StopLossRequest, LimitOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, OrderClass
 from alpaca.data.requests import StockBarsRequest
@@ -21,6 +22,15 @@ def get_trading_client():
         raise ValueError("Missing Alpaca API credentials")
     
     return TradingClient(api_key, secret_key, paper=True)
+
+def get_data_client():
+    api_key = os.getenv('APCA-API-KEY-ID')
+    secret_key = os.getenv('APCA-API-SECRET-KEY')
+    
+    if not api_key or not secret_key:
+        raise ValueError("Missing Alpaca API credentials")
+    
+    return StockHistoricalDataClient(api_key, secret_key)
 
 # Account
 def get_account():
@@ -56,7 +66,7 @@ def market_order(symbol: str, qty: int, side: str):
         side=OrderSide.BUY if side.lower() == "buy" else OrderSide.SELL,
         time_in_force=TimeInForce.DAY
     )
-    submit_order(order_data)
+    return submit_order(order_data)
 
 def limit_order(symbol: str, qty: int, side: str, limit_price: float):
     if not limit_price or limit_price <= 0:
@@ -150,14 +160,14 @@ def get_order_status(order_id: str):
     return order.status
 
 #Market Data
-def get_market_data(symbol: str, timeframe: str = "1Day"):
+def get_market_data(symbol: str, timeframe: TimeFrame = TimeFrame.Day):
 
-    client = get_trading_client()
+    client = get_data_client()
     
     bars_request = StockBarsRequest(
         symbol_or_symbols=symbol,
-        timeframe=TimeFrame.Day,
-        start=datetime.now() - timedelta(days=30)
+        timeframe=timeframe,
+        start=datetime.now() - timedelta(days=15)
     )
     
     bars = client.get_stock_bars(bars_request)

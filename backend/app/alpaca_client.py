@@ -40,8 +40,7 @@ def get_account():
     info = {
         "buying_power": account.buying_power,
         "cash": account.cash,
-        "portfolio_value": account.portfolio_value,
-        "last_trade_date": account.last_trade_date,
+        "portfolio_value": account.portfolio_value
     }
 
     return info

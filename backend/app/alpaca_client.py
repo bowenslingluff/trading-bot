@@ -147,15 +147,22 @@ def submit_order(order_data):
     
     return order
 
-def cancel_order(order_id: str):
+def cancel_order_by_id(order_id: str):
     # Cancel a pending order
     client = get_trading_client()
-    client.cancel_order(order_id)
+    order = client.get_order_by_id(order_id)
+    if order.status in ['filled', 'canceled', 'expired', 'rejected']:
+        return {"message": f"Order {order_id} cannot be cancelled (status: {order.status})"}
+    
+    # Cancel the order
+    client.cancel_order_by_id(order_id)
+    return {"message": f"Order {order_id} cancelled successfully"}
+        
 
 def get_order_status(order_id: str):
     # Check order status
     client = get_trading_client()
-    order = client.get_order(order_id)
+    order = client.get_order_by_id(order_id)
     return order.status
 
 #Market Data

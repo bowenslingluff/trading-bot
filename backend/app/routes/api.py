@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from app.alpaca_client import (
     get_account, get_positions, get_orders, get_market_data,
     market_order, limit_order, bracket_order, stop_loss, take_profit,
-    cancel_order, get_order_status
+    cancel_order_by_id, get_order_status
 )
 
 router = APIRouter()
@@ -120,8 +120,7 @@ async def place_take_profit_order(order: TakeProfitRequest):
 @router.delete("/orders/{order_id}")
 async def cancel_order_endpoint(order_id: str):
     try:
-        cancel_order(order_id)
-        return {"message": f"Order {order_id} cancelled successfully"}
+        return cancel_order_by_id(order_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

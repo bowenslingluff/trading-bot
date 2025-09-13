@@ -113,8 +113,6 @@ def llm_strategy(df, symbol: str, qty: int):
     
     # Create LLM prompt with technical data
     prompt = create_prompt(technical_data, symbol, qty)
-    print(len(prompt))
-    print(prompt)
     # Get LLM response
     response = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -122,16 +120,15 @@ def llm_strategy(df, symbol: str, qty: int):
     )
     print(response)
     decision = response.choices[0].message.content.strip()
-    CONFIDENCE_THRESHOLD = 0.75
     if decision.upper() == "HOLD":
         return {"decision": "HOLD", "reason": "LLM recommended HOLD"}
-    if trade_plan["confidence"] < CONFIDENCE_THRESHOLD:
-        return {"decision": "HOLD", "reason": "Confidence below threshold"}
     
     try:
         trade_plan = json.loads(decision)
+        
         # Add technical context to the trade plan
         trade_plan["technical_context"] = {
+            "entry_price": current_price,
             "sma20": current_sma20,
             "sma50": current_sma50,
             "rsi": current_rsi,
@@ -196,8 +193,7 @@ def create_prompt(technical_data, symbol, qty):
     - Volumes: {technical_data['recent_volumes']}
     
     RULES:
-    - Long only, 1% Stop Loss, 2+% Take Profit
-    - Risk/reward > 1.5
+    - Long only
     
     ANALYSIS REQUIRED:
     1. Assess the current trend (bullish/bearish/neutral)
@@ -208,16 +204,19 @@ def create_prompt(technical_data, symbol, qty):
     
     DECISION FORMAT:
     DECISION FORMAT:
-- If no trade: respond with exactly HOLD (no extra text).
-- If trade: respond with JSON only. Do not include code fences, or markdown. Return ONLY the JSON object in the following format:
+    - If no trade: respond with exactly HOLD (no extra text).
+    - If trade: respond with JSON ONLY. Do not include code fences, or markdown. 
+    You must include a confidence level between 0 and 1 which indicates your confidence that the trade will return profit.
+    You must calculate the risk/reward ratio. Focus on finding trades with a favorable risk-to-reward ratio that can be held for several days to weeks.
+    Return ONLY the JSON object in the following format:
     {{
         "side": "buy",
         "qty": {qty},
         "order_type": "market",
         "stop_loss": 435.5,
         "take_profit": 450.0,
-        "reasoning": "Detailed explanation of your analysis",
-        "confidence": 0.85,
-        "risk_reward": 2.0
+        "reasoning": "Detailed explanation of your analysis including key support/resistance levels and momentum indicators",
+        "confidence": *indicate confidence level*,
+        "risk_reward": *indicate risk/reward ratio*
     }}
     """

@@ -6,8 +6,9 @@ from alpaca.data import StockHistoricalDataClient
 from alpaca.trading.requests import MarketOrderRequest, TakeProfitRequest, StopLossRequest, LimitOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, OrderClass
 from alpaca.data.requests import StockBarsRequest
-from alpaca.data.timeframe import TimeFrame
+from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from dotenv import load_dotenv
+import pandas as pd
 import os
 from datetime import datetime, timedelta
 
@@ -166,16 +167,37 @@ def get_order_status(order_id: str):
     return order.status
 
 #Market Data
-def get_market_data(symbol: str, timeframe: TimeFrame = TimeFrame.Day):
-
+def get_15min_data(symbol: str):
+    """Get 15-minute data for technical analysis"""
     client = get_data_client()
     
     bars_request = StockBarsRequest(
         symbol_or_symbols=symbol,
-        timeframe=timeframe,
-        start=datetime.now() - timedelta(days=15)
+        timeframe=TimeFrame(amount=15, unit=TimeFrameUnit.Minute),  # 15-minute candles
+        start=datetime.now() - timedelta(days=7),  # 7 days should give us 70+ bars
+        end=datetime.now()
     )
     
     bars = client.get_stock_bars(bars_request)
-    return bars
+
+    bar_list = [
+        {
+            "timestamp": bar.timestamp,
+            "open": bar.open,
+            "high": bar.high,
+            "low": bar.low,
+            "close": bar.close,
+            "volume": bar.volume,
+            "trade_count": bar.trade_count,
+            "vwap": bar.vwap,
+            "symbol": bar.symbol
+        }
+        for bar in bars[symbol]  # bars[symbol] is a list of Bar objects
+    ]
+
+    # Now convert to DataFrame
+    df = pd.DataFrame(bar_list)
+    df.set_index('timestamp', inplace=True)
+
+    return df
 
